@@ -187,8 +187,6 @@ The convergence results are as follows:
 
 ![image-20230319183806177](Readme.assets/image-20230319183806177.png)
 
- 
-
 **v. Target Grid Contraction Clustering in the Fourth Round**
 
 After the third round of clustering, there might be some clustering windows that contain sparse grids or some outlier points within the clustering windows. Therefore, the objective is to improve and filter the clustering windows within the target grid, which may contain dispersed dense grids or clustering windows that are relatively sparse.

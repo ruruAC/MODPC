@@ -3,12 +3,12 @@
 - **Input:** An .xlsx file containing the coordinates of the grids to be aggregated.
 - **Output:** An .xlsx file containing the window number where dense grids are located after four aggregations, along with their corresponding grid coordinates.
 
-**Step 2:** Run "judge_.m".
+**Step 2:** Run "judge+.m".
 
 - **Input:** An .xlsx file containing the results of the four aggregations.
 - **Output:** An .xlsx file containing the boundaries of each aggregation window.
 
-**Step 3:** Run "judge_last.m".
+**Step 3:** Run "judge++.m".
 
 - **Input:** An .xlsx file containing the boundaries of each aggregation window where no intersections exist.
 - **Output:** An .xlsx file containing the boundaries of aggregation windows where no intersections exist.

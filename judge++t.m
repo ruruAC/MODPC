@@ -2,7 +2,7 @@
 [num]=xlsread('D:\ttt.xlsx',1) ;
 path='D:\tlastbianjie.xlsx';
 path2='D:\tlastzhog.xlsx';
-[nnum]=xlsread('D:\ttt�߽��.xlsx',1);
+[nnum]=xlsread('D:\ttt±ß½çµã.xlsx',1);
 %x=num(:,1)
 %y=num(:,2)
 z=num(:,1);

@@ -1,8 +1,8 @@
 
-[num]=xlsread('D:\ttt.xlsx',1) ;
-path='D:\tlastbianjie.xlsx';
-path2='D:\tlastzhog.xlsx';
-[nnum]=xlsread('D:\ttt±ß½çµã.xlsx',1);
+[num]=xlsread('test.xlsx',1) ;
+path='edge.xlsx';
+path2='beijing.xlsx';
+[nnum]=xlsread('index.xlsx',1);
 %x=num(:,1)
 %y=num(:,2)
 z=num(:,1);

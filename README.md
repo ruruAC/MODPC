@@ -79,8 +79,6 @@ After the initial clustering is completed, the formed cluster areas are as follo
 
  
 
-**ii. Filtering Initial Clusters of Discrete Grids**
-
 After completing the first data filtering, the grid data that meets the selection criteria is labeled as **"Clustering Grid"** data and marked as **"Dense Cluster Grids"** for further clustering analysis. The grid data that does not meet the selection criteria is categorized as **"Non-Clustering Grid."** Simultaneously, each convergence area that meets the selection criteria is labeled as a **"Clustering Window."**
 
 The "Non-Clustering Grid" serves as the denominator data in the process of **"e. Setting Grid Clustering Percentage Threshold"** and does not participate in the final presentation of grid clustering results.

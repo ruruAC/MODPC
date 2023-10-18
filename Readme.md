@@ -1,40 +1,36 @@
-**第一步：**运行“MODPC.py”。
+**Step 1:** Run "MODPC.py".
 
-输入：待汇聚栅格经纬度坐标的.xlsx文件；
+- **Input:** An .xlsx file containing the coordinates of the grids to be aggregated.
+- **Output:** An .xlsx file containing the window number where dense grids are located after four aggregations, along with their corresponding grid coordinates.
 
-输出：四次汇聚后，密集栅格所在汇聚窗口的编号及栅格对应经纬度坐标的.xlsx。
+**Step 2:** Run "judge_.m".
 
-**第二步：**运行judge_.m”。
+- **Input:** An .xlsx file containing the results of the four aggregations.
+- **Output:** An .xlsx file containing the boundaries of each aggregation window.
 
-输入：四次汇聚后的汇聚结果的.xlsx文件；
+**Step 3:** Run "judge_last.m".
 
-输出：每个汇聚窗口边界的.xlsx文件。
+- **Input:** An .xlsx file containing the boundaries of each aggregation window where no intersections exist.
+- **Output:** An .xlsx file containing the boundaries of aggregation windows where no intersections exist.
 
-**第三步：**运行“judge_last.m”。
+**Step 4:** Run "polygon.m".
 
-输入：每个汇聚窗口边界的.xlsx文件；
+- **Input:** An .xlsx file containing the boundaries of aggregation windows where no intersections exist.
+- **Output:** An .xlsx file in the format of the Amap (高德地图) interface, which can be imported into the Amap interface to visualize the final aggregation results.
 
-输出：不存在交汇的汇聚窗口边界的.xlsx文件。
 
-**第四步：**运行“polygon.m”。
+**Detailed Explanation:**
 
-输入：不存在交汇的汇聚窗口边界的.xlsx文件。
+In the following process, we will use GeoHash grid cells of 38m * 19m as an example to explain the novel clustering algorithm workflow in this invention.
 
-输出：高德地图接口格式的汇聚窗口边界的.xlsx文件，可以导入高德地图接口，可视化最后汇聚结果。
+**i. Select Grids that Meet the Criteria**
 
-注：“judge_last.m”为“judge_”的子函数，需要放在同一个运行文件夹下。
+We assume that grid cells with RSRP < -105dbm are the target grid cells for our clustering analysis. In the first step of clustering analysis, we begin by filtering the data based on this condition. After the initial data filtering is complete, the grid cells that meet the selection criteria are considered as "clustering grid" data for further clustering analysis, while the grid cells that do not meet the selection criteria are categorized as "non-clustering grid."
 
-**详细说明如下：**
+The "non-clustering grid" cells do not participate in the final presentation of grid clustering results.
 
-下文流程中均以GeoHash码栅格38m*19m为例进行说明，对本发明中的全新聚类算法流程进行介绍。
+For example, let's consider the data in Beijing's Huairou District, where the Unicom weak coverage RSRP < -105dbm accounts for >= 0.3 (in red):
 
-**i****、筛选满足条件栅格**
-
-我们假定RSRP＜-105dbm的栅格为我们需要进行聚类分析的目标栅格，那么，在聚类分析第一步，我们先根据条件进行第一步数据筛选。在完成第一次数据筛选后，将满足筛选条件的栅格数据作为“聚类栅格”数据，进行后续的聚类分析；将不满足筛选条件的栅格数据作为“非聚类栅格”。
-
-“非聚类栅格”不参与最终的栅格聚类结果呈现。
-
-以北京市怀柔区联通弱覆盖RSRP＜-105dbm占>=0.3（红色）的数据为例：
 
  ![image-20230319183622294](Readme.assets/image-20230319183622294.png)
 
@@ -46,31 +42,34 @@
 
  
 
-**ii****、过滤离散栅格初次聚类**
+**ii. Filtering Initial Clusters of Discrete Grids**
 
-在过滤离散栅格的过程中，需要完成2个过滤条件的设置，分别是：2.1、设置汇聚半径大小eps、2.2、设置汇聚圈内点个数MinPts。
+During the process of filtering discrete grid cells, two filtering conditions need to be set:
 
-过滤条件“2.1、设置汇聚半径大小eps”中的过滤窗口设置为圆形（基站覆盖为圆形）。由于该流程重点工作为删除离散点，因此过滤窗口的推荐配置为50m-200m，具体配置可以栅格大小作为依据设置。
+**2.1 Setting the Convergence Radius (eps):**
 
-过滤条件“2.2、设置离散栅格过滤数量门限”中的门限值为≥1的整数，数值大小可以根据需求进行自定义，具体配置可以依据栅格大小和过滤窗口配置。
+In this filtering condition, the filtering window is set as circular (representing the base station coverage, which is circular). Since the primary objective of this process is to eliminate outliers, it is recommended to configure the filtering window within the range of 50 meters to 200 meters. The specific configuration can be adjusted based on the grid cell size.
 
-例：2.1、设置汇聚半径大小eps（米）为“100m”；
+**2.2 Setting the Threshold for Filtering Discrete Grids:**
 
-2.2、设置汇聚圈内点个数MinPts为“4”。
+The threshold value for this condition should be an integer greater than or equal to 1. The specific numerical value can be customized based on specific requirements. The configuration should consider the size of the grid cells and the settings of the filtering window.
 
-依据上述的过滤条件设置，在100m*100mΠ的圆形过滤窗口内，在过滤窗口范围内，如果过滤窗口内的栅格占比小于10%，（由于栅格为19×38m：4*19*38/（100*100*3.14）=10%）那么我们认为该区域内栅格数量较少，判定该区域内栅格样本为离散样本，将这些栅格定义为离散栅格。
+For example:
 
-DBSCAN汇聚区域筛选规则：
+- Set the Convergence Radius (in meters) to "100m."
+- Set the Minimum Number of Points Within the Convergence Circle (MinPts) to "4."
 
- （1）、初始所有点被标记为“unvisited”。随机选取一点p作为核心点，标记为“visited”，并检查以p为圆心的eps邻域，是否至少包含MinPts个对象。如果不包含，该点标记为“离散聚类栅格”。如果包含，则将p标记为“密集聚类栅格”，并以p为圆心，创建一个新簇C，把属于p的邻域点全部放在候选对象N中，其中簇C称为“目标栅格聚类窗口”。
+According to the aforementioned filtering conditions, within a circular filtering window of 100 meters by 100 meters, if the percentage of grid cells in the window is less than 10% (calculated based on the grid cell size), it is considered that the number of grid cells in that area is relatively low. These grid cells are categorized as discrete grid cells.
 
-（2）、DBSCAN迭代，对N中不属于其他簇的点p’，添加到C中，同时标记为“visited”。同时，以p’作为核心点，搜索其邻域。如果它的邻域，至少有MinPts个点，则全部添加到N中。DBSCAB继续搜索N，直至N为中所有点为“visited”，无法继续搜索时，簇C构建完成。
+**DBSCAN Convergence Area Filtering Rules:**
 
-（3）、为了找到下一个簇，寻找所有点中任意一个“unvisited”p点，继续以上步骤，直至所有点都被访问过，结束。
+(1) Initially, all points are marked as "unvisited." A random point 'p' is selected as the core point, labeled as "visited," and its eps neighborhood is examined to determine if it contains at least MinPts objects. If it does not meet this criterion, the point is marked as a "discrete cluster grid." If the criterion is met, point 'p' is marked as a "dense cluster grid." A new cluster 'C' is created with 'p' as the center, and all neighboring points belonging to 'p' are included in a candidate set 'N.' This cluster is referred to as the "target grid cluster window."
 
- 
+(2) The DBSCAN algorithm iterates, adding points from 'N' that do not belong to other clusters to 'C,' marking them as "visited." Additionally, with point 'p' as the core point, its neighborhood is searched. If the neighborhood contains at least MinPts points, they are all added to 'N.' DBSCAN continues to search 'N' until all points in 'N' have been "visited," and the cluster 'C' is fully constructed.
 
-完成初次聚类后，形成聚类区域如下：
+(3) To find the next cluster, any "unvisited" point 'p' among all points is selected, and the above steps are continued until all points have been visited, concluding the process.
+
+After the initial clustering is completed, the formed cluster areas are as follows:
 
 ![image-20230319183702238](Readme.assets/image-20230319183702238.png)
 
@@ -80,123 +79,109 @@ DBSCAN汇聚区域筛选规则：
 
  
 
-在完成第一次数据筛选后，将满足筛选条件的栅格数据作为**“聚类栅格”**数据，标注为**“密集聚类栅格”**，进行后续的聚类分析；将不满足筛选条件的栅格数据作为**“非聚类栅格”**。同时，将满足筛选条件的每个汇聚区域标注为**“聚类窗口”**。
+**ii. Filtering Initial Clusters of Discrete Grids**
 
-“非聚类栅格”在“e、设置栅格聚类占比门限”流程中，作为栅格总数量分母数据，不参与最终的栅格聚类结果呈现。
+After completing the first data filtering, the grid data that meets the selection criteria is labeled as **"Clustering Grid"** data and marked as **"Dense Cluster Grids"** for further clustering analysis. The grid data that does not meet the selection criteria is categorized as **"Non-Clustering Grid."** Simultaneously, each convergence area that meets the selection criteria is labeled as a **"Clustering Window."**
 
-在汇聚区域筛选过程中，依次对全部栅格数据进行标记，分别标记为**“离散聚类栅格”、“密集聚类栅格”**2种类型。将“密集聚类栅格”数据作为目标栅格数据进行二次聚类分析。
+The "Non-Clustering Grid" serves as the denominator data in the process of **"e. Setting Grid Clustering Percentage Threshold"** and does not participate in the final presentation of grid clustering results.
 
-在初次汇聚后，为更好地符合现实场景，也为后续针对不同区域类型，根据弱覆盖密度，设立不同聚类参数，对初次汇聚形成的“密集聚类栅格”进行价值区域判断。
+During the convergence area filtering process, all grid data is marked as either **"Discrete Cluster Grids"** or **"Dense Cluster Grids."** The data labeled as **"Dense Cluster Grids"** is considered the target grid data for secondary clustering analysis.
 
-在**价值区域判断**过程中，需要完成2个判断条件的设置，分别是：2.3.聚类窗口边界点的汇聚半径大小eps’，2.4.边界点汇聚窗口的栅格数量门限。
+After the initial convergence, to better align with real-world scenarios and establish different clustering parameters for different types of regions based on weak coverage density, a **"Value Area Determination"** process is conducted.
 
-“2.3、聚类窗口边界点的汇聚半径大小eps’”，由于每个区域边界与边界点之间，较为空旷，即没有过多的栅格，且边界与边界之间较为紧密，所以eps’的设置不应过大，应该参考后续的平均距离设置（500m）。
+In the **Value Area Determination** process, two judgment criteria need to be set: 2.3 Convergence Radius (eps') for the boundary points of clustering windows and 2.4 the threshold for the number of grid cells within the boundary points' convergence windows.
 
-“2.4、边界点汇聚窗口的栅格数量门限”，也可以考虑连结形成的价值区域面积。
+**2.3. Setting the Convergence Radius for Boundary Points (eps'):** Since there are typically fewer grid cells between region boundaries, and the boundaries are relatively close together, the eps' should not be set too large. The configuration should reference the subsequent average distance setting (e.g., 500m).
 
-价值区域判断过程如下：
+**2.4. Setting the Threshold for the Number of Grid Cells within Boundary Points' Convergence Windows:** This threshold can also consider the area formed by connecting the value areas.
 
-（1）、价值区域判断的基础算法仍采用DBSCAN，城村判断出于对初次汇聚形成的聚类窗口边界点进行考虑。初始时将所有初次聚类窗口标记为“unvisited”，并对每一个聚类窗口都形成一个相应的边界点集合，边界点标记为“no”。
+The process of Value Area Determination is as follows:
 
-（2）、随机选取一个窗口j作为核心窗口，标记为”visited”，提取其边界点对应的集合Bj,同时在集合Pathj中添加窗口j中的所有密集栅格。对集合Bj中的点，选取一个未访问的点p，标注为“yes”，以其为圆心，eps’为半径，在其邻域中，是否存在一个“unvisited”的区域中的边界点。如果存在，将该窗口的边界点全部加入Bj，该窗口的所有栅格加入Pathj，且将该区域标记为“visited”。如果不存在，再以集合Bj中其他未访问的点，以其为圆心搜索邻域。直至Bj中所有点都被访问过，即都为“yes”时，Pathj构建完成，其为一个城村区域。
+(1) The basic algorithm for value area determination still uses DBSCAN, focusing on considering the boundary points of initially formed clustering windows. Initially, all clustering windows are marked as "unvisited," and a corresponding boundary point collection is formed for each clustering window. Boundary points are labeled as "no."
 
-（3）、对于pathj，如果它的栅格数量大于等于“2.4.边界点汇聚窗口的栅格数量门限”，其为**“价值区域”**，否则为**“非价值区域”**。
+(2) A random window 'j' is selected as the core window, marked as "visited." The collection 'Bj' of its boundary points is extracted, and all dense grid cells in window 'j' are added to the collection 'Pathj.' For the points in collection 'Bj,' an unvisited point 'p' is selected and labeled as "yes." Using 'p' as the center and eps' as the radius, it is checked whether there is an "unvisited" boundary point within the neighborhood. If there is, all boundary points of that window are added to 'Bj,' all grid cells of that window are added to 'Pathj,' and the region is marked as "visited." If no such boundary points exist, the search continues using other unvisited points in collection 'Bj' as the center. This process continues until all points in 'Bj' have been visited (i.e., all are marked as "yes"), and 'Pathj' is fully constructed, forming a value area.
 
-（4）、搜索其余未访问的聚类窗口，循环以上步骤，判断城村区域。对于是价值的区域中的聚类窗口，其栅格以及窗口都应赋予**价值属性**，方便后续的聚类工作。
+(3) For 'Pathj,' if the number of grid cells is greater than or equal to the threshold of **"2.4. the number of grid cells within boundary points' convergence windows,"** it is considered a **"Value Area."** Otherwise, it is categorized as a **"Non-Value Area."**
 
-特别地，上述搜索过程，可以从面积最大的聚类窗口开始搜索，因为价值区域栅格是较为密集的，因此初次聚类后，面积较大的窗口周边大概率是存在很多聚类窗口可以加入相应价值区域的。
+(4) The search for the remaining unvisited clustering windows continues, repeating the above steps to determine value areas. For clustering windows within value areas, both their grid cells and the windows themselves should be assigned **"Value Attributes"** for ease of subsequent clustering work.
+
+In particular, the search process can begin with the largest area clustering window since value area grid cells are typically denser. Therefore, after the initial clustering, the areas around the larger windows are more likely to have many clustering windows that can be added to the corresponding value areas.
+
 
 ![image-20230319183728648](Readme.assets/image-20230319183728648.png)
 
 ![image-20230319183735970](Readme.assets/image-20230319183735970.png)
 
-接下来，可以根据区域的价值属性，分别进行聚类。例如，可以先将是价值属性的密集栅格提取汇聚，剩余栅格归为非价值属性(800m)处理。
+**iii. Secondary Clustering by Splitting Clustering Windows**
 
-以下部分以价值（300-500m）属性栅格为例。
+After the initial clustering, large continuous areas are formed that extend beyond the base station's coverage radius. Therefore, to deal with large, continuous clustering windows that don't align with real base station coverage scenarios, a secondary clustering, or splitting, is performed.
 
+In the process of clustering area splitting, three conditions need to be set: 3.1, setting the average distance threshold for target grid clustering windows, 3.2, setting the maximum distance threshold within target grid clustering windows, and 3.3, setting the increase value 'o' for the number of points in the third convergence circle.
 
+For conditions 3.1 and 3.2, the values should be set with consideration for the communication industry's base station coverage capacity. It is recommended to configure these values based on the coverage scenario and base station coverage capacity. If the average distance or maximum distance of a clustering window exceeds the threshold value, it should be split.
 
- 
+For condition 3.3, setting the increase value for the number of points in the third convergence circle, the initial value should be 1 more than the value set in 2.2 (Setting the MinPts for convergence circle). This increase makes the criteria for clustering density stricter, leading to the breaking of large, continuous clustering areas.
 
-**iii****、聚类窗口拆分二次聚类**
+For example:
+- Setting the average distance threshold for target grid clustering windows to 500.
+- Setting the maximum distance threshold for target grid clustering windows to 500.
+- Setting the increase value for the number of points in the third convergence circle to 1.
 
- 在初次聚类后，会生成大面积连片区域，超出基站覆盖半径。因此，对不符合实际基站覆盖场景的大面积连片聚类窗口进行拆分，即二次聚类。
+However, splitting in this manner may result in many "Dense Grids" becoming "Discrete Grids" after splitting, making them ineligible for further convergence, and, consequently, more discrete grids may surround them. Therefore, in the third clustering process, when a target split clustering window is created, noise points (discrete grids) generated during secondary clustering should be evaluated to determine whether to label them as "Discrete Grids."
 
-在聚类区域拆分的过程中，需要完成3个拆分条件的设置，分别是： 3.1、设置目标栅格聚类窗口的平均距离门限，3.2、设置目标栅格聚类窗口中的最大距离门限，3.3、设置三次汇聚圈内点个数增加值o。
+In the Discrete Grid Evaluation process, three conditions need to be set: 3.4, setting the distance threshold from the Discrete Grid to the center of the target grid clustering window, 3.5, setting the density comparison for Discrete Grid entry and exit of the clustering window, 3.6, setting the average distance for Discrete Grid entry into the clustering window, and 3.7, setting the maximum distance for Discrete Grid entry into the clustering window.
 
-拆分条件“3.1和3.2”应考虑到通信行业基站覆盖能力问题，建议该值配置结合覆盖场景和基站覆盖能力。如果该聚类窗口的平均距离或最大距离超出门限值，则对其进行拆分。
+For 3.4, the distance threshold should be set with consideration of the communication industry's base station coverage capacity. It's recommended to configure this value based on the coverage scenario and base station coverage capacity.
 
-拆分条件“3.3、设置三次汇聚圈内点个数增加值o”，初始值应为“2.2、设置汇聚圈内点个数Minpots”，建议每次增加1个，即增大对汇聚区域汇聚密度的标准，使大片连结的汇聚区域断开。
+For 3.5, the density calculation is based on the number of grid cells within the clustering window. If the density decreases upon entry, the grid cell should not be entered.
 
-例：g、设置目标栅格聚类窗口的平均距离门限为500；
+For 3.6 and 3.7, these conditions assess whether the entry of a discrete grid into the clustering window would result in the average or maximum distance exceeding the previously set average distance threshold (500m).
 
-h、设置目标栅格聚类窗口中的最大距离门限为500；
+Example conditions:
+- Setting the distance threshold for Discrete Grids from the center of the target grid clustering window to 500m.
+- Setting the density comparison for Discrete Grid entry and exit, i.e., "If the density is greater than or equal to the exit density after entry, then enter."
+- Setting the average distance for Discrete Grid entry into the clustering window to 500m.
+- Setting the maximum distance for Discrete Grid entry into the clustering window to 500m.
 
-i、设置三次汇聚圈内点个数增加值为“1”。
+The process of clustering window splitting occurs as follows:
 
-但是，由于这样拆分，导致很多原本的“密集栅格”在拆分后变成“离散栅格”，不能进行汇聚，使得周围的离散栅格较多。因此，对于在三次聚类过程中，针对某个目标拆分聚类窗口，在二次聚类时，产生的噪声点（离散栅格），进行离散判断，确定是否将其标注为“离散栅格”。
+(1) All clustering windows after the initial clustering are marked as "unvisited." Any unvisited clustering window is selected, and its average and maximum distances are calculated. If it doesn't meet either condition 'j' or 'k,' it is subjected to secondary clustering.
 
- 
+(2) Clustering window 'j' is subjected to DBSCAN_Plus clustering once again, with MinPts increased by the 'o' value. For windows created in the third clustering, the newly created discrete grid cells are evaluated. If they meet the discrete evaluation conditions, they are entered into the target grid window. Otherwise, they are marked as discrete grids and added to the discrete collection 'Noise.' Subsequently, the grid cells from this re-clustering are subjected to splitting evaluation. MinPts should be increased by 'o' from the previous splitting. This process is repeated until each window no longer meets the splitting criteria, and the resulting discrete collection 'Noise' is output.
 
-在离散栅格判断的过程中，需要完成3个离散条件的设置，分别是：3.4、设置离散栅格距离目标栅格聚类窗口中心点的距离门限，3.5、设置离散栅格划入划出聚类窗口的密度比较，3.6.设置离散栅格划入聚类窗口的平均距离，3.7、设置离散栅格划入聚类窗口的最大距离。
+(3) Considering that during the third clustering, some large clustering windows were separated, resulting in discrete grid cells that, due to their large window radius, were not entered into any clustering windows. In the subsequent splitting of large windows, these discrete grid cells cannot participate in the evaluation, leading to the inclusion of some remaining discrete grid cells. Therefore, the discrete grid cells in the 'Noise' collection are evaluated again and attempted to be entered into the clustering windows created after the three clustering rounds. This process continues until all grid cells in 'Noise' have been evaluated.
 
-离散栅格判断条件中，“3.4、设置离散栅格距离目标栅格聚类窗口中心点的距离门限”为基础判断条件，应考虑到通信行业基站覆盖能力问题，建议该值配置结合覆盖场景和基站覆盖能力。
+(4) Considering that in the initial clustering, the MinPts setting was relatively small, meaning that once a certain density was reached, a grid cell could become a "Dense Grid." To maintain generality, the remaining points in 'Noise' are subjected to a further DBSCAN_Plus iterative convergence, with an initial MinPts value consistent with the value set in 2.2 (Setting the MinPts for convergence circle). This forms a new 'new_Noise' collection. Grid cells in 'new_Noise' are then evaluated for entry into 'Noise' after DBSCAN_Plus convergence, with the same discrete conditions as mentioned earlier.
 
-“3.5、设置离散栅格划入划出聚类窗口的密度”，密度计算：首先，设密度得分为f，对于聚类栅格中，所有距离中心点的距离小于等于平均距离的栅格个数。（说明在基站辐射区域内，能够辐射到的点个数越多，说明该区域汇聚的点不仅紧凑且密集）。则，密度为Md=(f*38*19)/(目标栅格聚类窗口j的平均距离dj*dj*Π)。然后，分别计算该离散栅格划入和划出后，聚类窗口密度大小（划入划出肯定dj,f都可能会变）。若划入后密度减小，则不划入，
-
-“3.6、设置离散栅格划入聚类窗口的平均距离，3.7、设置离散栅格划入聚类窗口的最大距离”，即将该离散栅格划入聚类窗口后，窗口的平均距离和最大距离是否会超出之前设定的平均距离门限（500m）。如果超出3.6、3.7任意一值超出，则不划入该栅格。
-
-注意：在假设将该离散栅格划入聚类窗口时，该聚类窗口的中心点坐标、最大距离、平均距离都需要重新计算。
-
-例：3.4、设置离散栅格距离目标栅格聚类窗口中心点的距离门限为“500m”；
-
-3.5、设置离散栅格划入划出聚类窗口的密度比较，“若划入后，大于等于划出密度，则划入”；
-
-3.6.设置离散栅格划入聚类窗口的平均距离为“500m”；
-
-3.7、设置离散栅格划入聚类窗口的最大距离为“500m“。
-
- 
-
-聚类窗口拆分二次聚类过程如下：
-
-（1）、将所有初次聚类后的聚类窗口，标记为“unvisited”，选取任意一个未访问的聚类窗口，计算其平均距离和最大距离，对不符合j、k任意一个条件的窗口j，对其进行二次聚类。
-
-（2）、对窗口j再次进行DBSCAN_Plus聚类，此次聚类的MinPts是在原有基础上加上增加值o。对于三次聚类产生的窗口，首先，将此次汇聚产生的离散栅格进行离散判断，如果符合离散判断条件，划入目标栅格窗口，否则标注为离散栅格，并添加至离散集合Noise。接着，对再次汇聚的栅格进行拆分判断，如果符合拆分条件，则继续拆分，其中MinPts应在刚才拆分基础上，再次增加o。循环以上步骤，直至每一个窗口，都不再符合拆分条件，且输出离散集合Noise。
-
-（3）、考虑到在三次聚类过程中，由于前几次聚类时存在一些较大的聚类窗口，分离出的一些离散栅格，由于本身窗口半径较大，因此即使进行离散判断，也未能将其划入聚类窗口，但是在后续对大窗口再拆分时，这些离散栅格不能再参与判断，从而导致出现一些仍能划入的离散栅格。因此，对于离散集合Noise中的离散栅格，再次尝试划入刚才三次聚类后的聚类窗口，即对于Noise中的所有栅格，遍历所有聚类窗口，对符合离散判断条件的栅格，划入对应聚类窗口，且从Noise中删除。直至Noise中所有栅格访问完毕。
-
-（4）、考虑到在初次聚类时，MinPts设定值较小，即达到一定密度，就可以成为“密集栅格”。为不失一般性，对Noise中的剩余点，再次进行DBSCAN_Plus迭代汇聚，此次汇聚中，MinPts初始值应与“2.2、设置汇聚圈内点个数MinPts”一致，且形成新的new_Nosie集合，并对new_Noise集合中的离散点再次尝试划入刚才Noise进行DBSCAN_Plus汇聚后形成的窗口，仍然是上述的离散条件判断。
 
  
 
  
 
-**iv****、目标栅格合并三次聚类**
+**iv. Merging Target Grids in the Third Round of Clustering**
 
-在二次汇聚后，形成了较多较小的“聚类窗口”。为符合实际基站覆盖情况，对初次汇聚后，筛选出的“聚类窗口”进行合并聚类。
+After the secondary clustering, numerous smaller "clustering windows" are created. To match the actual base station coverage scenarios, the clustering windows obtained after the initial clustering are merged into larger clusters.
 
-在**目标栅格合并聚类**的过程中，需要完成3个合并条件的设置，分别是： 4.1、设置合并栅格聚类窗口的平均距离门限，4.2、设置合并栅格聚类窗口中的最大距离门限，4.3、设置合并栅格聚类窗口的中心距离门限。
+In the process of **merging target grids**, three merging conditions need to be set: 4.1, setting the average distance threshold for merging grid clustering windows, 4.2, setting the maximum distance threshold within merging grid clustering windows, and 4.3, setting the center distance threshold for merging grid clustering windows.
 
-合并条件“4.1和4.2”的计算方法为：假设将要合并的两个聚类窗口j和k可以合并为一个窗口jk，首先，计算该合并窗口的**中心点**，**中心点坐标为两个初次汇聚后的聚类窗口中所有密集栅格的经纬度平均值。**其次，计算合并窗口中所有密集栅格距离中心点的距离djk。最后，对于合并栅格聚类窗口jk中，计算密集栅格中距离中心点的最大距离max_djk。对于“4.1、设置合并栅格聚类窗口的平均距离门限，4.2、设置合并栅格聚类窗口中的最大距离门限”的设定值，由于过滤窗口设置为圆形，半径可以根据需求进行自定义，建议配置该值＞“2.1、设置汇聚窗口半径大小eps”，同时，考虑到通信行业基站覆盖能力问题，建议该值配置≤500m。
+The calculation method for conditions 4.1 and 4.2 is as follows: Assuming that two clustering windows, j and k, are to be merged into one window, jk, you first calculate the center point of this merged window. The center point's coordinates are the average latitude and longitude of all dense grids within the two clustering windows obtained in the initial clustering. Next, you calculate the distance, djk, of all dense grids within the merged window from the center point. Finally, you determine the maximum distance, max_djk, of dense grids from the center point within the merged grid clustering window. For conditions 4.1 and 4.2, it is recommended to set the values with a radius larger than "2.1, setting the convergence window radius size (eps)" while considering the communication industry's base station coverage capacity. It is suggested that this value should be less than or equal to 500m.
 
-合并条件“4.3、设置合并栅格聚类窗口的中心距离门限”可以根据需求进行自定义，其作为**簇间距离**的一个衡量标准”建议与将要合并的两个聚类窗口j、k的平均距离相比较，即采用比值形式：设置sss=密集栅格聚类窗口j与k中心点间的距离d /（密集栅格聚类窗口j的平均距离dj+密集栅格聚类窗口k的平均距离dk）。
+Condition 4.3, "setting the center distance threshold for merging grid clustering windows," can be customized based on your requirements. It serves as a measure of the inter-cluster distance. It is suggested to compare sss, a ratio which considers the distance between the center points of the dense grid clustering windows j and k and their average distances (dj and dk). Specifically, set sss = d / (dj + dk).
 
-特别地，djk与sss除了是过滤条件，更应该作为一种判断标准。Djk是对聚类窗口内的栅格汇聚好坏进行评判，sss是对聚类窗口与其他聚类窗口间的汇聚好坏进行评判。Djk越小，sss越大说明聚类越好。如果djk（dj,dk）越小，说明该簇中的栅格汇聚较为紧凑。换句话说，可以理解为该窗口中所有栅格的方差值，方差越小，代表波动越小，即所有栅格的坐标都较为平稳，集中于同一个值，说明汇聚较为紧凑。此处，本应该是如果合并后的窗口djk小于等于初次汇聚的两个窗口的平均距离，或者小于等于两个窗口中最小的平均距离，即djk<= (dj/dk)/2或者djk<=min(dj,dk)，说明合并后的窗口比原先的初次窗口更紧凑。但由于这样不符合实际建站标准，略微有些浪费，所以才认为只要不超过基站覆盖半径，就可以合并，当然为了防止两块汇聚窗口间间隙过大，所以再增添sss作为一个汇聚要求，作为簇间距离的衡量标准，其越小说明两簇越应该汇聚。
+Importantly, djk and sss should not only be used as filtering conditions but also as indicators. A smaller djk and a larger sss indicate better clustering. A small djk suggests that the grids within the cluster are densely packed. Put differently, it's similar to the variance of grid coordinates, where a smaller variance indicates less variation, and all grid coordinates are closer to a common value, indicating denser clustering. The decision is made to merge as long as djk does not exceed the base station coverage radius. However, to avoid a gap that is too large between the two merging clusters, sss is introduced as a requirement for convergence, indicating the closeness of two clusters.
 
-例：4.1、设置合并栅格聚类窗口的平均距离门限为“500m”
+Example conditions:
+- Setting the average distance threshold for merging grid clustering windows to 500m.
+- Setting the maximum distance threshold for merging grid clustering windows to 500m.
+- Setting the center distance threshold for merging grid clustering windows to 2 (lower values of sss result in less convergence, meaning the two clusters need to be closer).
 
-4.2、设置合并栅格聚类窗口中的最大距离门限为“500m”
+The process of merging clustering windows is as follows:
 
-4.3、设置合并栅格聚类窗口的中心距离门限为“2”。(sss设置越小，越不易合并，则两块需要距离的更近。)
+(1) Based on the process of **iii. Clustering Window Splitting in the Second Round of Clustering**, all clustering windows are initially marked as "unvisited." An unvisited initial clustering window, j, is chosen as the root node, marked as "visited," and a search is conducted for other clustering windows. If, during the search process, there exists a clustering area, k, that satisfies the merging conditions d, f, and e, then the two clustering areas are merged. All dense grids from clustering area j are added to clustering area k, and clustering area j is cleared and removed from the search.
 
-**合并聚类过程**如下：
+(2) The search continues for the next unvisited initial clustering window, which becomes the new root node, marked as "visited," and a search is conducted for other clustering windows. The above process is repeated until all initial clustering windows have been marked as visited, completing the merging clustering.
 
-（1）、依据 “iii、**聚类窗口拆分二次聚类**”过程中汇聚好的栅格窗口，将其全部标为”unvisited”。任选一个未访问过的初次聚类窗口j，以其作为根节点，将j标记为“visited”,搜索其余全部聚类窗口。若搜索过程中，存在一个聚类区域k同时满足d、f、e的合并条件，则将两个聚类区域进行合并，且将聚类区域j的密集栅格添加至聚类区域k，并将聚类区域j清除，停止搜索。
-
-（2）、继续寻找下一个未访问的初级聚类窗口，将其作为新的根节点，标记为”visited”，搜索其余全部聚类窗口，反复进行以上过程，直到所有的初次聚类窗口都被标记为已访问，完成合并聚类。
-
-汇聚结果如下：
+The convergence results are as follows:
 
 ![image-20230319183749477](Readme.assets/image-20230319183749477.png)
 
@@ -206,39 +191,36 @@ i、设置三次汇聚圈内点个数增加值为“1”。
 
  
 
-**v.** **目标栅格内缩四次聚类**
+**v. Target Grid Contraction Clustering in the Fourth Round**
 
-在三次聚类后，存在一些较为栅格稀疏的聚类窗口，或聚类窗口中存在一些偏离点。因此，针对目标栅格聚类窗口中可能存在的偏离密集栅格，以及较为稀疏的聚类窗口进行改进和筛选。
+After the third round of clustering, there might be some clustering windows that contain sparse grids or some outlier points within the clustering windows. Therefore, the objective is to improve and filter the clustering windows within the target grid, which may contain dispersed dense grids or clustering windows that are relatively sparse.
 
-在聚类区域内缩的过程中，需要完成3个内缩条件的设置，分别是： 5.1、设置忽略目标栅格聚类窗口的平均距离门限nd，5.2、设置目标栅格聚类窗口中的离散距离比ndd门限、5.3、设置目标栅格聚类窗口中的离散密度门限。
+In the process of contracting clustering regions, three contraction conditions need to be set: 5.1, setting the average distance threshold for ignoring target grid clustering windows (nd), 5.2, setting the dispersed distance ratio threshold within target grid clustering windows (ndd), and 5.3, setting the dispersed density threshold within target grid clustering windows.
 
-“5.1、设置忽略目标栅格聚类窗口的平均距离门限nd”，应该小于“3.1、设置目标栅格聚类窗口的平均距离门限”，应考虑到通信行业基站覆盖能力问题，建议该值配置结合覆盖场景和基站覆盖能力，同时也考虑较多覆盖一些弱覆盖区域。因此，建议nd的值小于基站的基础覆盖半径。
+"5.1, setting the average distance threshold for ignoring target grid clustering windows (nd)" should be less than "3.1, setting the average distance threshold for target grid clustering windows". This should consider the base station coverage capacity, and it's recommended that this value is set in line with coverage scenarios and base station coverage capacity, while also considering weaker coverage areas. Therefore, it's suggested that the value of nd should be less than the basic coverage radius of the base station.
 
-“5.2、设置目标栅格聚类窗口中的离散距离比ndd门限“，计算方法：对于聚类窗口j，设其距离中心点最远的栅格距离为max_dj, 各个栅格距离中心点的平均距离为dj，则离散距离比：ndd=max_dj/dj。离散距离比ndd越趋近于1，说明汇聚的越集中，即最远的点也在辐射半径dj内。在这里，对于聚类窗口j中，ndd大于门限值的最远密集栅格，将其从窗口j中剔除，且进行**离散栅格判断**，即判断其是否可以划入其他窗口，或变为“离散栅格”。
+"5.2, setting the dispersed distance ratio threshold within target grid clustering windows (ndd)" is calculated as follows: For a clustering window, j, if the farthest grid from the center point of that window is at a distance max_dj, and the average distance of all grids to the center point is dj, then the dispersed distance ratio is calculated as ndd = max_dj / dj. The closer ndd is to 1, the more concentrated the clustering, indicating that even the farthest point is within the radius of dj. In this step, for clustering window j, grids with ndd greater than the threshold value are removed, and a dispersed grid judgment is performed, determining if it can be assigned to another window or marked as a "disperse grid".
 
-“5.3、设置目标栅格聚类窗口中的离散密度门限”，计算方法与“3.5、设置离散栅格划入划出聚类窗口的密度”中的密度计算方法一致。在此，对于将要忽略的窗口，要求是在“5.1、平均距离”和内缩后“5.3、密度”同时都不满足的情形下，才予以忽略，即这类聚类窗口汇聚的又小又稀疏，如果聚类窗口小，但是密集，则不应忽略。
+"5.3, setting the dispersed density threshold within target grid clustering windows" uses the same density calculation method as "3.5, setting the density for grids entering and exiting the clustering window". Here, for the windows to be ignored, both "5.1, average distance" and the contracted "5.3, density" must be met. In other words, these clustering windows are both small and sparse; if a clustering window is small but dense, it should not be ignored.
 
-例：5.1、设置忽略目标栅格聚类窗口的平均距离门限nd为“150m”；
+Example conditions:
+- Setting the average distance threshold for ignoring target grid clustering windows (nd) to 150m.
+- Setting the dispersed distance ratio threshold within target grid clustering windows (ndd) to 1.8.
+- Setting the dispersed density threshold within target grid clustering windows to 0.3.
 
-5.2、设置目标栅格聚类窗口中的离散距离比ndd门限为“1.8”；
+**The process of Target Grid Contraction Clustering** is as follows:
 
-5.3、设置目标栅格聚类窗口中的离散密度门限为“0.3”。
+(1) All clustering windows obtained after the second round of clustering are initially marked as "unvisited". Any unvisited clustering window, j, is selected. Its farthest grid from the center point, known as max_dj, and the average distance of all grids to the center point, known as dj, are calculated. For the set of dense grids within window j, denoted as Cj, the dispersed distance ratio ndd is computed. If any grid farp within Cj has ndd greater than the threshold, farp is removed from Cj. Then, a search is conducted for the nearest windows (other than j) surrounding farp, which is based on the distance from farp to the center points of other windows. This search helps to reduce the workload of searching other windows.
 
- 
+(2) The dispersed grid judgment for the farp point is similar to the "Dispersed Grid Judgment Process" explained in "iii. Clustering Window Splitting in the Second Round of Clustering." In summary, if the window k has either an average distance dk or maximum distance max_dk greater than the threshold (500m) after farp is assigned, or if the density in window k is lower than the density outside, farp is not assigned to window k. Otherwise, farp is assigned to window k, and the search ends.
 
-**目标栅格内缩四次聚类**过程如下：
+(3) The process is repeated for all grids within window j until no grid has a dispersed distance ratio greater than the threshold value, indicating that the internal contraction of window j is complete.
 
-（1）、将所有二次聚类后的聚类窗口，标记为“unvisited”，选取任意一个未访问的聚类窗口j，计算其窗口内距离中心点最远的栅格的距离，即最大距离max_dj，以及窗口内各个栅格距离中心点的平均距离dj。对于窗口j中的密集栅格集合Cj，计算其离散距离比ndd，若存在ndd大于门限值的点farp，则将farp栅格从Cj中清除，同时，搜索farp周围的除j的就近窗口，可以以farp距离其他窗口中心点的距离衡量就近程度，进行初筛，减少一些对其余窗口的搜索的工作量。
+(4) If dj, the average distance in window j before contraction, is greater than or equal to "5.1, setting the average distance threshold for ignoring target grid clustering windows (nd)", window j is marked as "visited," and other "unvisited" windows are contracted. If dj is less than nd, the density md of window j is calculated after contraction. If md is greater than or equal to "5.3, setting the dispersed density threshold within target grid clustering windows," the contracted window is retained, and it's marked as "visited." Otherwise, for window j, after internal contraction, the remaining points are all subjected to the dispersed grid judgment, similar to the "Dispersed Grid Judgment Process" explained in "iii. Clustering Window Splitting in the Second Round of Clustering." Points that do not meet the dispersed grid judgment conditions are marked as "disperse grids." After all points within window j have been judged and transferred, window j is marked as "visited," and all points within the window are cleared.
 
-（2）、对于farp点的离散栅格判断，与“iii、聚类窗口拆分二次聚类”中的“离散栅格判断过程”相同，即假设将farp划入聚类窗口k，如果窗口k的平均距离dk或最大距离max_dk大于门限（500m），或者，划入密度小于划出密度，则不划入。否则，划入窗口k，搜索结束。
+(5) The above process is repeated until all clustering windows have been internally contracted, which means there are no unvisited windows left. The result is the output of the four-time clustering.
 
-（3）、循环窗口j中所有栅格，直至没有栅格距离中心点的距离与平均距离的比值，即离散距离比大于门限值时，窗口j内缩完毕。
-
-（4）、如果窗口j在内缩前的dj大于等于“5.1、设置忽略目标栅格聚类窗口的平均距离门限nd”，则将窗口j标记为“visited”，并继续内缩其他“unvisited”窗口。如果dj小于nd，计算内缩后，窗口j的密度md。如果md大于等于“5.3、设置目标栅格聚类窗口中的离散密度门限”，则保留内缩后的该窗口，且将其标注为“visited”。否则，对于该聚类窗口j中，内缩后的剩余点全部进行离散栅格判断，与“iii、聚类窗口拆分二次聚类”中的“离散栅格判断过程”相同，将其尝试划入其他窗口，不满足离散栅格判断条件的点，就将其标注为“离散栅格”，对窗口j中所有点判断完毕和转移后，将窗口j变为“visited”，且清空该窗口所有点。
-
-（5）、循环以上步骤，直至所有聚类窗口内缩完毕，即没有未访问的窗口，输出内缩后的四次聚类窗口结果。
-
-四次聚类结果如下：
+The results of the four-time clustering are as follows:
 
 ![image-20230319183814861](Readme.assets/image-20230319183814861.png)
 

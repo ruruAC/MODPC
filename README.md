@@ -16,7 +16,7 @@
 **Step 4:** Run "polygon.m".
 
 - **Input:** An .xlsx file containing the boundaries of aggregation windows where no intersections exist.
-- **Output:** An .xlsx file in the format of the Amap (高德地图) interface, which can be imported into the Amap interface to visualize the final aggregation results.
+- **Output:** An .xlsx file in the format of the Amap interface, which can be imported into the Amap interface to visualize the final aggregation results.
 
 
 **Detailed Explanation:**
